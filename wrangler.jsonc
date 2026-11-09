@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "brewfather-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": { "enabled": true }
+  // Secrets (set with `npx wrangler secret put <NAME>` or in the dashboard):
+  //   BREWFATHER_USER_ID, BREWFATHER_API_KEY, MCP_SECRET
+}

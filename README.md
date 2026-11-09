@@ -2,7 +2,7 @@
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that connects AI assistants to the [Brewfather](https://brewfather.app/) brewing platform. Manage batches, recipes, and inventory directly through your AI assistant.
 
-Built with [FastMCP](https://github.com/jlowin/fastmcp) and the [Brewfather API v2](https://docs.brewfather.app/api).
+Built with the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) on Cloudflare Workers and the [Brewfather API v2](https://docs.brewfather.app/api).
 
 ## Features
 
@@ -26,64 +26,46 @@ Manage stock levels for all ingredient types:
 
 Each inventory category supports listing, detail lookup, and inventory adjustment (set absolute or add/subtract).
 
+## Architecture
+
+A stateless [Cloudflare Worker](https://developers.cloudflare.com/workers/) speaking MCP over Streamable HTTP (JSON responses, no sessions, no Durable Objects, no storage). Each `POST /mcp/<secret>` builds a fresh MCP server, handles one JSON-RPC message, and returns. Runs on the Workers free plan (100k requests/day).
+
+Auth: requests must include the shared `MCP_SECRET`, either in the URL path (`/mcp/<MCP_SECRET>`) or as `Authorization: Bearer <MCP_SECRET>`. Brewfather credentials live only in Worker secrets.
+
 ## Prerequisites
 
-- Python 3.10+
-- A [Brewfather](https://brewfather.app/) account with a Premium subscription
-- A Brewfather API key — generate one in **Brewfather → Settings → API Key**
+- A [Brewfather](https://brewfather.app/) Premium account and API key (**Settings → API**), with the scopes you need (batches.read/write, recipes.read, inventory.read/write)
+- A free Cloudflare account
+- Node.js 20+
 
-## Setup
+## Deploy
 
-1. **Clone the repository**
+```bash
+npm install
+npx wrangler login
+npx wrangler deploy
+npx wrangler secret put BREWFATHER_USER_ID
+npx wrangler secret put BREWFATHER_API_KEY
+npx wrangler secret put MCP_SECRET   # e.g. output of: openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
+```
 
-   ```bash
-   git clone https://github.com/thomasrdennis1/Brewfather-MCP.git
-   cd Brewfather-MCP
-   ```
+Your MCP endpoint is `https://brewfather-mcp.<your-subdomain>.workers.dev/mcp/<MCP_SECRET>`.
 
-2. **Create a virtual environment and install dependencies**
+## Connect Claude (web, desktop and mobile)
 
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
+claude.ai → **Settings → Connectors → Add custom connector**, paste the endpoint URL above, leave OAuth fields empty. Connectors added on claude.ai sync to the Claude mobile apps.
 
-3. **Configure environment variables**
+For Claude Code:
 
-   Create a `.env` file in the project root:
+```bash
+claude mcp add --transport http brewfather https://brewfather-mcp.<subdomain>.workers.dev/mcp/<MCP_SECRET>
+```
 
-   ```env
-   BREWFATHER_USER_ID=your_user_id
-   BREWFATHER_API_KEY=your_api_key
-   ```
+## Local development
 
-   You can find both values in **Brewfather → Settings → API Key**.
-
-4. **Run the server**
-
-   ```bash
-   python server.py
-   ```
-
-## MCP Client Configuration
-
-Add this server to your MCP client (e.g. Claude Desktop, VS Code Copilot, etc.):
-
-```json
-{
-  "mcpServers": {
-    "brewfather": {
-      "command": "python",
-      "args": ["server.py"],
-      "cwd": "/path/to/Brewfather-MCP",
-      "env": {
-        "BREWFATHER_USER_ID": "your_user_id",
-        "BREWFATHER_API_KEY": "your_api_key"
-      }
-    }
-  }
-}
+```bash
+cp .dev.vars.example .dev.vars   # fill in values
+npm run dev                       # http://localhost:8787/mcp/<MCP_SECRET>
 ```
 
 ## Available Tools
@@ -113,7 +95,7 @@ Add this server to your MCP client (e.g. Claude Desktop, VS Code Copilot, etc.):
 
 ## API Rate Limits
 
-The Brewfather API allows **500 requests per hour** per API key. The server handles rate-limit responses (HTTP 429) with informative error messages.
+The Brewfather API allows **500 requests per hour** per API key. Rate-limit responses (HTTP 429) are returned as tool errors with the retry delay.
 
 ## License
 
