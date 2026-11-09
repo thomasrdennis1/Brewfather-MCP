@@ -28,9 +28,9 @@ Each inventory category supports listing, detail lookup, and inventory adjustmen
 
 ## Architecture
 
-A stateless [Cloudflare Worker](https://developers.cloudflare.com/workers/) speaking MCP over Streamable HTTP (JSON responses, no sessions, no Durable Objects, no storage). Each `POST /mcp/<secret>` builds a fresh MCP server, handles one JSON-RPC message, and returns. Runs on the Workers free plan (100k requests/day).
+A stateless [Cloudflare Worker](https://developers.cloudflare.com/workers/) speaking MCP over Streamable HTTP (JSON responses, no sessions, no Durable Objects, no storage). Each `POST /mcp` builds a fresh MCP server, handles one JSON-RPC message, and returns. Runs on the Workers free plan (100k requests/day).
 
-Auth: requests must include the shared `MCP_SECRET`, either in the URL path (`/mcp/<MCP_SECRET>`) or as `Authorization: Bearer <MCP_SECRET>`. Brewfather credentials live only in Worker secrets.
+Auth: requests must send `Authorization: Bearer <MCP_SECRET>` (32+ characters). The secret is never accepted in the URL, so it stays out of request logs. Preview URLs are disabled. Brewfather credentials live only in Worker secrets.
 
 ## Prerequisites
 
@@ -49,23 +49,23 @@ npx wrangler secret put BREWFATHER_API_KEY
 npx wrangler secret put MCP_SECRET   # e.g. output of: openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
 ```
 
-Your MCP endpoint is `https://brewfather-mcp.<your-subdomain>.workers.dev/mcp/<MCP_SECRET>`.
+Your MCP endpoint is `https://brewfather-mcp.<your-subdomain>.workers.dev/mcp`.
 
 ## Connect Claude (web, desktop and mobile)
 
-claude.ai → **Settings → Connectors → Add custom connector**, paste the endpoint URL above, leave OAuth fields empty. Connectors added on claude.ai sync to the Claude mobile apps.
+claude.ai → **Settings → Connectors → Add custom connector**: paste the endpoint URL above, choose **No sign in**, and add a header `Authorization` with value `Bearer <MCP_SECRET>`. Connectors added on claude.ai sync to the Claude mobile apps.
 
 For Claude Code:
 
 ```bash
-claude mcp add --transport http brewfather https://brewfather-mcp.<subdomain>.workers.dev/mcp/<MCP_SECRET>
+claude mcp add --transport http brewfather https://brewfather-mcp.<subdomain>.workers.dev/mcp --header "Authorization: Bearer <MCP_SECRET>"
 ```
 
 ## Local development
 
 ```bash
 cp .dev.vars.example .dev.vars   # fill in values
-npm run dev                       # http://localhost:8787/mcp/<MCP_SECRET>
+npm run dev                       # http://localhost:8787/mcp
 ```
 
 ## Available Tools

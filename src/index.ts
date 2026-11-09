@@ -21,7 +21,7 @@ const STATIC: Record<string, [BodyInit, string]> = {
 export interface Env {
   BREWFATHER_USER_ID: string;
   BREWFATHER_API_KEY: string;
-  /** Shared secret that must appear in the URL path (/mcp/<secret>) or as a Bearer token. */
+  /** Shared secret, sent as "Authorization: Bearer <secret>". At least 32 characters. */
   MCP_SECRET: string;
 }
 
@@ -36,12 +36,10 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-function authorized(request: Request, url: URL, env: Env): boolean {
-  if (!env.MCP_SECRET || env.MCP_SECRET.length < 16) return false;
-  const pathSecret = url.pathname.startsWith("/mcp/") ? url.pathname.slice("/mcp/".length).replace(/\/$/, "") : "";
-  if (pathSecret && timingSafeEqual(pathSecret, env.MCP_SECRET)) return true;
-  // Accept "Bearer <secret>", a bare "<secret>", or a doubled "Bearer Bearer <secret>"
-  // (some clients prepend "Bearer" themselves).
+function authorized(request: Request, env: Env): boolean {
+  if (!env.MCP_SECRET || env.MCP_SECRET.length < 32) return false;
+  // Header only: secrets in URLs end up in logs. Accept "Bearer <secret>", a bare
+  // "<secret>", or a doubled "Bearer Bearer <secret>" (some clients prepend "Bearer").
   const auth = (request.headers.get("authorization") ?? "").trim().replace(/^(bearer\s+)+/i, "").trim();
   return auth.length > 0 && timingSafeEqual(auth, env.MCP_SECRET);
 }
@@ -60,10 +58,10 @@ export default {
     if (url.pathname === "/health") {
       return new Response("brewfather-mcp: ok\n");
     }
-    if (url.pathname !== "/mcp" && !url.pathname.startsWith("/mcp/")) {
+    if (url.pathname !== "/mcp") {
       return new Response("Not found\n", { status: 404 });
     }
-    if (!authorized(request, url, env)) {
+    if (!authorized(request, env)) {
       return json(401, { error: "unauthorized" });
     }
 

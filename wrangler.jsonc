@@ -5,6 +5,7 @@
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "preview_urls": false,
   "observability": { "enabled": true },
   "rules": [{ "type": "Data", "globs": ["**/*.png", "**/*.ico"] }, { "type": "Text", "globs": ["**/*.svg", "**/*.html"] }]
   // Secrets (set with `npx wrangler secret put <NAME>` or in the dashboard):
