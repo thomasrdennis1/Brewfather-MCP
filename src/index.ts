@@ -24,9 +24,10 @@ function authorized(request: Request, url: URL, env: Env): boolean {
   if (!env.MCP_SECRET || env.MCP_SECRET.length < 16) return false;
   const pathSecret = url.pathname.startsWith("/mcp/") ? url.pathname.slice("/mcp/".length).replace(/\/$/, "") : "";
   if (pathSecret && timingSafeEqual(pathSecret, env.MCP_SECRET)) return true;
-  const auth = request.headers.get("authorization") ?? "";
-  if (auth.startsWith("Bearer ") && timingSafeEqual(auth.slice(7), env.MCP_SECRET)) return true;
-  return false;
+  // Accept "Bearer <secret>", a bare "<secret>", or a doubled "Bearer Bearer <secret>"
+  // (some clients prepend "Bearer" themselves).
+  const auth = (request.headers.get("authorization") ?? "").trim().replace(/^(bearer\s+)+/i, "").trim();
+  return auth.length > 0 && timingSafeEqual(auth, env.MCP_SECRET);
 }
 
 const json = (status: number, body: unknown) =>
