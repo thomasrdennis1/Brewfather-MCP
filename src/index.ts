@@ -1,6 +1,22 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { registerTools } from "./tools.js";
+import icon512 from "../assets/icon-512.png";
+import icon192 from "../assets/icon-192.png";
+import icon32 from "../assets/icon-32.png";
+import faviconIco from "../assets/favicon.ico";
+import iconSvg from "../assets/icon.svg";
+import indexHtml from "../assets/index.html";
+
+const STATIC: Record<string, [BodyInit, string]> = {
+  "/": [indexHtml, "text/html; charset=utf-8"],
+  "/favicon.ico": [faviconIco, "image/x-icon"],
+  "/icon.svg": [iconSvg, "image/svg+xml"],
+  "/icon-32.png": [icon32, "image/png"],
+  "/icon-192.png": [icon192, "image/png"],
+  "/icon-512.png": [icon512, "image/png"],
+  "/apple-touch-icon.png": [icon192, "image/png"],
+};
 
 export interface Env {
   BREWFATHER_USER_ID: string;
@@ -37,7 +53,11 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    if (url.pathname === "/" || url.pathname === "/health") {
+    const asset = STATIC[url.pathname];
+    if (asset && request.method === "GET") {
+      return new Response(asset[0], { headers: { "content-type": asset[1], "cache-control": "public, max-age=86400" } });
+    }
+    if (url.pathname === "/health") {
       return new Response("brewfather-mcp: ok\n");
     }
     if (url.pathname !== "/mcp" && !url.pathname.startsWith("/mcp/")) {
@@ -56,7 +76,17 @@ export default {
       });
     }
 
-    const server = new McpServer({ name: "brewfather_mcp", version: "2.0.0" });
+    const server = new McpServer({
+      name: "brewfather_mcp",
+      title: "Brewfather",
+      version: "2.0.0",
+      websiteUrl: url.origin,
+      icons: [
+        { src: `${url.origin}/icon-192.png`, mimeType: "image/png", sizes: ["192x192"] },
+        { src: `${url.origin}/icon-512.png`, mimeType: "image/png", sizes: ["512x512"] },
+        { src: `${url.origin}/icon.svg`, mimeType: "image/svg+xml", sizes: ["any"] },
+      ],
+    });
     registerTools(server, env);
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined,

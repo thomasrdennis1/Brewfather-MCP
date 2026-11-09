@@ -5,7 +5,8 @@
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "rules": [{ "type": "Data", "globs": ["**/*.png", "**/*.ico"] }, { "type": "Text", "globs": ["**/*.svg", "**/*.html"] }]
   // Secrets (set with `npx wrangler secret put <NAME>` or in the dashboard):
   //   BREWFATHER_USER_ID, BREWFATHER_API_KEY, MCP_SECRET
 }
