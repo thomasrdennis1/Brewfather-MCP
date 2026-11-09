@@ -77,7 +77,7 @@ export default {
     const server = new McpServer({
       name: "brewfather_mcp",
       title: "Brewfather",
-      version: "2.0.0",
+      version: "2.1.0",
       websiteUrl: url.origin,
       icons: [
         { src: `${url.origin}/icon-192.png`, mimeType: "image/png", sizes: ["192x192"] },
